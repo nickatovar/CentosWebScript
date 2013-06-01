@@ -22,7 +22,7 @@
 #http://www.nsa.gov/ia/_files/os/redhat/rhel5-guide-i731.pdf
 
 #####Webserver#####
-yum install httpd php mysql-server php-mysql
+yum install httpd php mysql-server php-mysql mod_ssl
 
 service httpd start
 service mysqld start
@@ -39,6 +39,51 @@ echo "Include vhosts.d/*.conf" >> /etc/httpd/conf/httpd.conf
 mkdir -p /var/www/vhosts/example.com/htdocs
 chown apache:apache /var/www -R
 
+##IP Tables##
+#Reset all rules (F) and chains (X), necessary if have already defined iptables rules
+iptables -t filter -F 
+iptables -t filter -X 
+ 
+#Start by blocking all traffic, this will allow secured, fine grained filtering
+iptables -t filter -P INPUT DROP 
+iptables -t filter -P FORWARD DROP 
+iptables -t filter -P OUTPUT DROP 
+ 
+#Keep established connexions
+iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT 
+iptables -A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT 
+ 
+#Allow loopback
+iptables -t filter -A INPUT -i lo -j ACCEPT 
+iptables -t filter -A OUTPUT -o lo -j ACCEPT 
+#HTTP
+iptables -t filter -A OUTPUT -p tcp --dport 80 -j ACCEPT
+iptables -t filter -A INPUT -p tcp --dport 80 -j ACCEPT
+#FTP 
+iptables -t filter -A OUTPUT -p tcp --dport 20:21 -j ACCEPT
+iptables -t filter -A INPUT -p tcp --dport 20:21 -j ACCEPT
+#SMTP 
+iptables -t filter -A INPUT -p tcp --dport 25 -j ACCEPT
+iptables -t filter -A OUTPUT -p tcp --dport 25 -j ACCEPT
+#POP3
+iptables -t filter -A INPUT -p tcp --dport 110 -j ACCEPT
+iptables -t filter -A OUTPUT -p tcp --dport 110 -j ACCEPT
+#IMAP
+iptables -t filter -A INPUT -p tcp --dport 143 -j ACCEPT 
+iptables -t filter -A OUTPUT -p tcp --dport 143 -j ACCEPT 
+#ICMP
+iptables -t filter -A INPUT -p icmp -j ACCEPT 
+iptables -t filter -A OUTPUT -p icmp -j ACCEPT
+#SSH
+iptables -t filter -A INPUT -p tcp --dport 22 -j ACCEPT
+iptables -t filter -A OUTPUT -p tcp --dport 22 -j ACCEPT
+#DNS
+iptables -t filter -A OUTPUT -p tcp --dport 53 -j ACCEPT
+iptables -t filter -A OUTPUT -p udp --dport 53 -j ACCEPT
+iptables -t filter -A INPUT -p tcp --dport 53 -j ACCEPT
+iptables -t filter -A INPUT -p udp --dport 53 -j ACCEPT
+#NTP
+iptables -t filter -A OUTPUT -p udp --dport 123 -j ACCEPT
 
 ##Webmin##
 
