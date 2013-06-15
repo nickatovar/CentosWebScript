@@ -1,16 +1,11 @@
 ############# CentOS 6 Web Script ###########
 
-#This script is meant to take basic steps in hardening your
-#Centos6.X environment remember however that no system is
-#foolproof and watching your logs is the best defense
-#against intruders and malicious activity.
+#This script is meant as an add on to the Hardening Script,
+#it installs the basic software and security conscious
+#rules to get a LAMP based webserver up and running.
 
 #Look for "*Change This*" throughout the script to specific
 #system settings that must be altered.
-
-#Also make sure that if you are using ssh to log into your
-#your server to add another user, other than root, and add them
-#to the ssh group
 
 #Please review the sources below to understand what this
 #script is actually doing.
@@ -22,8 +17,15 @@
 #http://www.nsa.gov/ia/_files/os/redhat/rhel5-guide-i731.pdf
 
 #####Webserver#####
-yum install httpd php mysql-server php-mysql mod_ssl
 
+#Add Updated Centos/RHEL Webserver Repos
+rpm -Uvh http://dl.iuscommunity.org/pub/ius/stable/CentOS/6/x86_64/epel-release-6-5.noarch.rpm
+rpm -Uvh http://dl.iuscommunity.org/pub/ius/stable/CentOS/6/x86_64/ius-release-1.0-11.ius.centos6.noarch.rpm
+
+#Install/Start Webserver Components
+#Depending on site/cms you may need to add functionality (i.e. php-xml php-gd)
+#*Change This* 
+yum -y install httpd php mysql-server php-mysql mod_ssl openssl php-mcrypt 
 service httpd start
 service mysqld start
 
@@ -35,55 +37,35 @@ chkconfig mysqld on
 mkdir -p /etc/httpd/vhosts.d
 echo "Include vhosts.d/*.conf" >> /etc/httpd/conf/httpd.conf
 
-#*Change This*
-mkdir -p /var/www/vhosts/example.com/htdocs
-chown apache:apache /var/www -R
+#*Change This* Change the domains to your own or add multiple
+mkdir -p /var/srv/vhosts/example.com/htdocs
+chown apache:apache /var/srv/vhosts/example.com/htdocs -R
 
-##IP Tables##
-#Reset all rules (F) and chains (X), necessary if have already defined iptables rules
-iptables -t filter -F 
-iptables -t filter -X 
+##FIREWALL##
+#Vars *Change This*
+ NET=venet0
+ HOST=0.0.0.0
+
+
+#Create a HTTPD chain
+
+ iptables -N HTTPD
+ iptables -t filter -A INPUT -j HTTPD
+ iptables -A HTTPD -m state --state NEW -i $NET -p tcp -s 0/0 -d $HOST --dport http --syn -j ACCEPT
+ iptables -A HTTPD -m state --state NEW -i $NET -p tcp -s 0/0 -d $HOST --dport https --syn -j ACCEPT
+ iptables -A HTTPD -j RETURN
  
-#Start by blocking all traffic, this will allow secured, fine grained filtering
-iptables -t filter -P INPUT DROP 
-iptables -t filter -P FORWARD DROP 
-iptables -t filter -P OUTPUT DROP 
+#Add Rule for Webmin port
+#*Change This* after you setup webmin
+iptables -I INPUT 4 -p tcp --dport 10000 -j ACCEPT
  
-#Keep established connexions
-iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT 
-iptables -A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT 
- 
-#Allow loopback
-iptables -t filter -A INPUT -i lo -j ACCEPT 
-iptables -t filter -A OUTPUT -o lo -j ACCEPT 
-#HTTP
-iptables -t filter -A OUTPUT -p tcp --dport 80 -j ACCEPT
-iptables -t filter -A INPUT -p tcp --dport 80 -j ACCEPT
-#FTP 
-iptables -t filter -A OUTPUT -p tcp --dport 20:21 -j ACCEPT
-iptables -t filter -A INPUT -p tcp --dport 20:21 -j ACCEPT
-#SMTP 
-iptables -t filter -A INPUT -p tcp --dport 25 -j ACCEPT
-iptables -t filter -A OUTPUT -p tcp --dport 25 -j ACCEPT
-#POP3
-iptables -t filter -A INPUT -p tcp --dport 110 -j ACCEPT
-iptables -t filter -A OUTPUT -p tcp --dport 110 -j ACCEPT
-#IMAP
-iptables -t filter -A INPUT -p tcp --dport 143 -j ACCEPT 
-iptables -t filter -A OUTPUT -p tcp --dport 143 -j ACCEPT 
-#ICMP
-iptables -t filter -A INPUT -p icmp -j ACCEPT 
-iptables -t filter -A OUTPUT -p icmp -j ACCEPT
-#SSH
-iptables -t filter -A INPUT -p tcp --dport 22 -j ACCEPT
-iptables -t filter -A OUTPUT -p tcp --dport 22 -j ACCEPT
-#DNS
-iptables -t filter -A OUTPUT -p tcp --dport 53 -j ACCEPT
-iptables -t filter -A OUTPUT -p udp --dport 53 -j ACCEPT
-iptables -t filter -A INPUT -p tcp --dport 53 -j ACCEPT
-iptables -t filter -A INPUT -p udp --dport 53 -j ACCEPT
-#NTP
-iptables -t filter -A OUTPUT -p udp --dport 123 -j ACCEPT
+#Save settings
+
+ /sbin/service iptables save
+
+#List rules
+
+ iptables -L -v
 
 ##Webmin##
 
@@ -97,3 +79,5 @@ wget -P /tmp http://www.webmin.com/jcameron-key.asc
 rpm --import /tmp/jcameron-key.asc
 
 yum -y install webmin
+
+#Setup the rest via webmin
