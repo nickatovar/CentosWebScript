@@ -18,12 +18,8 @@
 
 #####Webserver#####
 
-#Add Updated Centos/RHEL Webserver Repos
-rpm -Uvh http://dl.iuscommunity.org/pub/ius/stable/CentOS/6/x86_64/epel-release-6-5.noarch.rpm
-rpm -Uvh http://dl.iuscommunity.org/pub/ius/stable/CentOS/6/x86_64/ius-release-1.0-11.ius.centos6.noarch.rpm
-
 #Install/Start Webserver Components
-#Depending on site/cms you may need to add functionality (i.e. php-xml php-gd)
+#Depending on site/cms you may need to add functionality (i.e. php-xml php-gd php-mbstring)
 #*Change This* 
 yum -y install httpd php mysql-server php-mysql mod_ssl openssl php-mcrypt 
 service httpd start
@@ -46,11 +42,14 @@ chown apache:apache /var/srv/vhosts/example.com/htdocs -R
  NET=venet0
  HOST=0.0.0.0
 
-
 #Create a HTTPD chain
 
  iptables -N HTTPD
- iptables -t filter -A INPUT -j HTTPD
+ 
+#Filter the INPUT chain
+ iptables -t filter -I INPUT 23 -j HTTPD
+ 
+#HTTPD Chain
  iptables -A HTTPD -m state --state NEW -i $NET -p tcp -s 0/0 -d $HOST --dport http --syn -j ACCEPT
  iptables -A HTTPD -m state --state NEW -i $NET -p tcp -s 0/0 -d $HOST --dport https --syn -j ACCEPT
  iptables -A HTTPD -j RETURN
