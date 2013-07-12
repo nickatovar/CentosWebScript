@@ -39,7 +39,7 @@ chown apache:apache /var/srv/vhosts/example.com/htdocs -R
 
 ##FIREWALL##
 #Vars *Change This*
- NET=venet0
+ NET=eth0
  HOST=0.0.0.0
 
 #Create a HTTPD chain
