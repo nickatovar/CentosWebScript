@@ -35,36 +35,36 @@ echo "Include vhosts.d/*.conf" >> /etc/httpd/conf/httpd.conf
 
 #*Change This* Change the domains to your own or add multiple
 mkdir -p /var/srv/vhosts/example.com/htdocs
-chown apache:apache /var/srv/vhosts/example.com/htdocs -R
+chown -R apache:apache /var/srv/vhosts/example.com/htdocs
 
 ##FIREWALL##
 #Vars *Change This*
- NET=eth0
- HOST=0.0.0.0
+NET=eth0
+HOST=0.0.0.0
 
-#Create a HTTPD chain
-
- iptables -N HTTPD
- 
-#Filter the INPUT chain
- iptables -t filter -I INPUT 23 -j HTTPD
- 
-#HTTPD Chain
- iptables -A HTTPD -m state --state NEW -i $NET -p tcp -s 0/0 -d $HOST --dport http --syn -j ACCEPT
- iptables -A HTTPD -m state --state NEW -i $NET -p tcp -s 0/0 -d $HOST --dport https --syn -j ACCEPT
- iptables -A HTTPD -j RETURN
- 
 #Add Rule for Webmin port
 #*Change This* after you setup webmin
 iptables -I INPUT 4 -p tcp --dport 10000 -j ACCEPT
+
+#Create a HTTPD chain
+
+iptables -N HTTPD
+ 
+#Filter the INPUT chain
+iptables -I INPUT 23 -j HTTPD
+ 
+#HTTPD Chain
+iptables -A HTTPD -m state --state NEW -i $NET -p tcp -s 0/0 -d $HOST --dport http --syn -j ACCEPT
+iptables -A HTTPD -m state --state NEW -i $NET -p tcp -s 0/0 -d $HOST --dport https --syn -j ACCEPT
+iptables -A HTTPD -j RETURN
  
 #Save settings
 
- /sbin/service iptables save
+/sbin/service iptables save
 
 #List rules
 
- iptables -L -v
+iptables -L -v
 
 ##Webmin##
 
